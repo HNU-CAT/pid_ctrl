@@ -36,6 +36,9 @@ The example results of running the above command can be visulized as below:
 https://github.com/Zhefan-Xu/tracking_controller/assets/55560905/5a83ede2-a8a2-4c7a-a5f4-3dd3304e9ad0
 
 https://github.com/user-attachments/assets/28321dd7-60d3-4f61-940d-227ff98c5790
+
+<img src="./full_analysis.png" alt="Controller Analysis Diagram" width="800"/>
+
 ## III. Controller Structure
 The implemented controller follows the structure shown below:
 
