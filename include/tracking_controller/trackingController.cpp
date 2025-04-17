@@ -212,6 +212,7 @@ namespace controller
 			cmdMsg.yaw_rate = this->target_.yaw_dot;
 			cmdMsg.type_mask = 0;
 			this->accCmdPub_.publish(cmdMsg);
+						ROS_WARN("Only use FCU, No PID");
 			return;
 		}
 
@@ -403,7 +404,7 @@ namespace controller
 		cmdMsg.acceleration_or_force.z = accRef(2) - 9.8;
 		cmdMsg.yaw = this->target_.yaw;
 		cmdMsg.type_mask = cmdMsg.IGNORE_PX + cmdMsg.IGNORE_PY + cmdMsg.IGNORE_PZ + cmdMsg.IGNORE_VX + cmdMsg.IGNORE_VY + cmdMsg.IGNORE_VZ + cmdMsg.IGNORE_YAW_RATE;
-		cout << "acc: " << accRef(0) << " " << accRef(1) << " " << accRef(2) - 9.8 << " " << endl;
+		// cout << "acc: " << accRef(0) << " " << accRef(1) << " " << accRef(2) - 9.8 << " " << endl;
 		this->accCmdPub_.publish(cmdMsg);
 	}
 
