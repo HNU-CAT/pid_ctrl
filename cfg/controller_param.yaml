@@ -20,12 +20,12 @@ acceleration_control: true # only PID matters
 
 
 # Position（外环）
-position_p: [1.2, 1.2, 1.5]  # X/Y 提高响应
+position_p: [1.5, 1.5, 1.5]  # X/Y 提高响应
 position_i: [0.0, 0.0, 0.2]  # 仅Z轴有I项
 position_d: [0.0, 0.0, 0.1]  # 暂去掉X/Y的D
 
 # Velocity（内环）
-velocity_p: [0.8, 0.8, 0.6]  # 提高X/Y响应，Z略提
+velocity_p: [0.6, 0.6, 0.6]  # 提高X/Y响应，Z略提
 velocity_i: [0.0, 0.0, 0.0]  # 保持为0，避免积分震荡
 velocity_d: [0.0, 0.0, 0.1]  # 暂去掉X/Y的D
 

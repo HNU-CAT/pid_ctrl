@@ -467,9 +467,11 @@ namespace controller
 		// 2. position & velocity feedback control (PID control for both position and velocity)
 		Eigen::Vector3d currPos(this->odom_.pose.pose.position.x, this->odom_.pose.pose.position.y, this->odom_.pose.pose.position.z);
 		Eigen::Vector3d currVelBody(this->odom_.twist.twist.linear.x, this->odom_.twist.twist.linear.y, this->odom_.twist.twist.linear.z);
-		Eigen::Vector4d currQuat(this->odom_.pose.pose.orientation.w, this->odom_.pose.pose.orientation.x, this->odom_.pose.pose.orientation.y, this->odom_.pose.pose.orientation.z);
-		Eigen::Matrix3d currRot = controller::quat2RotMatrix(currQuat);
-		Eigen::Vector3d currVel = currRot * currVelBody;
+		// Eigen::Vector4d currQuat(this->odom_.pose.pose.orientation.w, this->odom_.pose.pose.orientation.x, this->odom_.pose.pose.orientation.y, this->odom_.pose.pose.orientation.z);
+		// Eigen::Matrix3d currRot = controller::quat2RotMatrix(currQuat);
+		// Eigen::Vector3d currVel = currRot * currVelBody;
+		// maybe not need in LIO 
+		Eigen::Vector3d currVel = currVelBody;
 		Eigen::Vector3d targetPos(this->target_.position.x, this->target_.position.y, this->target_.position.z);
 		Eigen::Vector3d targetVel(this->target_.velocity.x, this->target_.velocity.y, this->target_.velocity.z);
 		Eigen::Vector3d positionError = targetPos - currPos;
