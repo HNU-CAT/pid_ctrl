@@ -7,10 +7,13 @@
 
 # ROS Topic
 # odom_topic: /Odometry
+# odom_topic: /Odom_high_freq
 odom_topic: /iris_0/mavros/vision_odom/odom
 # imu_topic: /lidar/imu
+# imu_topic: /mavros/imu/data
 imu_topic: /iris_0/mavros/imu/data
 target_topic: /planning/pos_cmd
+# target_topic: /planning/pos_cmd
 
 # body
 use_fcu_ctrl: false      # use FCU control
@@ -20,7 +23,7 @@ acceleration_control: true # only PID matters
 
 
 # Position（外环）
-position_p: [1.5, 1.5, 1.5]  # X/Y 提高响应
+position_p: [1.0, 1.0, 1.0]  # X/Y 提高响应
 position_i: [0.0, 0.0, 0.2]  # 仅Z轴有I项
 position_d: [0.0, 0.0, 0.1]  # 暂去掉X/Y的D
 
