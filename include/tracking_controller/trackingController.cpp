@@ -24,6 +24,9 @@ namespace controller
 		this->nh_.getParam("controller/imu_topic", this->imu_topic);
 		this->nh_.getParam("controller/target_topic", this->target_topic);
 
+		this->nh_.getParam("controller/attitude_target_topic", this->attitude_target_topic);
+		this->nh_.getParam("controller/position_arget_topic", this->position_target_topic);
+
 		// Chose control mode, default: ACC Control
 		this->nh_.getParam("controller/body_rate_control", this->bodyRateControl_);
 		this->nh_.getParam("controller/attitude_control", this->attitudeControl_);
@@ -72,10 +75,10 @@ namespace controller
 	void trackingController::registerPub()
 	{
 		// command publisher
-		this->cmdPub_ = this->nh_.advertise<mavros_msgs::AttitudeTarget>("/iris_0/mavros/setpoint_raw/attitude", 100);
+		this->cmdPub_ = this->nh_.advertise<mavros_msgs::AttitudeTarget>(this->attitude_target_topic, 100);
 
 		// acc comman publisher
-		this->accCmdPub_ = this->nh_.advertise<mavros_msgs::PositionTarget>("/iris_0/mavros/setpoint_raw/local", 100);
+		this->accCmdPub_ = this->nh_.advertise<mavros_msgs::PositionTarget>(this->position_target_topic, 100);
 
 		// current pose visualization publisher
 		this->poseVisPub_ = this->nh_.advertise<geometry_msgs::PoseStamped>("/tracking_controller/robot_pose", 1);
@@ -182,12 +185,12 @@ namespace controller
 			// Never Sub Target,  Not Start Plan
 			if (not this->firstTargetReceived_)
 			{
-				ROS_WARN("Ready to TakeOFF, Be Careful");
+				// ROS_WARN("Ready to TakeOFF, Be Careful");
 				this->publishTakeOff(start_odom);
 			}
 			else if ((ros::Time::now() - this->last_Received).toSec() > 0.5) // Maybe Plan End or Something Else, Hover
 			{
-				ROS_WARN("There is no Target, is the Plan End?");
+				// ROS_WARN("There is no Target, is the Plan End?");
 				this->publishHover();
 			}
 			return;

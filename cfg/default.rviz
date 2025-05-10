@@ -157,14 +157,11 @@ Visualization Manager:
     - Class: rviz/PublishPoint
       Single click: true
       Topic: /clicked_point
-    - Class: rviz_plugins/Goal3DTool
-      Topic: goal
-    - Class: rviz_plugin_selected_points_publisher/SelectedPointsPublisher
   Value: true
   Views:
     Current:
-      Class: rtabmap_rviz_plugins/OrbitOriented
-      Distance: 19.439359664916992
+      Class: rviz/Orbit
+      Distance: 17.623416900634766
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -172,149 +169,18 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: 3.0604147911071777
-        Y: 1.3319802284240723
-        Z: -1.1314336061477661
-      Focal Shape Fixed Size: false
+        X: 0
+        Y: 0
+        Z: 0
+      Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.8697969317436218
+      Pitch: 1.2603977918624878
       Target Frame: <Fixed Frame>
-      Yaw: 2.795374631881714
-    Saved:
-      - Class: rviz/FPS
-        Enable Stereo Rendering:
-          Stereo Eye Separation: 0.05999999865889549
-          Stereo Focal Distance: 1
-          Swap Stereo Eyes: false
-          Value: false
-        Invert Z Axis: false
-        Name: FPS
-        Near Clip Distance: 0.009999999776482582
-        Pitch: 0.4000000059604645
-        Position:
-          X: -11
-          Y: 0
-          Z: 8
-        Roll: 0
-        Target Frame: my_view
-        Yaw: 0
-      - Class: rviz/FPS
-        Enable Stereo Rendering:
-          Stereo Eye Separation: 0.05999999865889549
-          Stereo Focal Distance: 1
-          Swap Stereo Eyes: false
-          Value: false
-        Invert Z Axis: false
-        Name: FPS
-        Near Clip Distance: 0.009999999776482582
-        Pitch: 0.5
-        Position:
-          X: -10
-          Y: 0
-          Z: 10
-        Roll: 0
-        Target Frame: my_view
-        Yaw: 0
-      - Class: rviz/FPS
-        Enable Stereo Rendering:
-          Stereo Eye Separation: 0.05999999865889549
-          Stereo Focal Distance: 1
-          Swap Stereo Eyes: false
-          Value: false
-        Invert Z Axis: false
-        Name: FPS
-        Near Clip Distance: 0.009999999776482582
-        Pitch: 0.6000000238418579
-        Position:
-          X: -10
-          Y: 0
-          Z: 10
-        Roll: 0
-        Target Frame: my_view
-        Yaw: 0
-      - Class: rviz/Orbit
-        Distance: 15.70908260345459
-        Enable Stereo Rendering:
-          Stereo Eye Separation: 0.05999999865889549
-          Stereo Focal Distance: 1
-          Swap Stereo Eyes: false
-          Value: false
-        Field of View: 0.7853981852531433
-        Focal Point:
-          X: 0.6264700293540955
-          Y: -0.032951872795820236
-          Z: -0.28275611996650696
-        Focal Shape Fixed Size: true
-        Focal Shape Size: 0.05000000074505806
-        Invert Z Axis: false
-        Name: 钻洞对比
-        Near Clip Distance: 0.009999999776482582
-        Pitch: 0.44479724764823914
-        Target Frame: my_view
-        Yaw: 3.140383720397949
-      - Class: rviz/Orbit
-        Distance: 50.68461608886719
-        Enable Stereo Rendering:
-          Stereo Eye Separation: 0.05999999865889549
-          Stereo Focal Distance: 1
-          Swap Stereo Eyes: false
-          Value: false
-        Field of View: 0.7853981852531433
-        Focal Point:
-          X: -0.4029660224914551
-          Y: -0.001756848767399788
-          Z: -0.28272488713264465
-        Focal Shape Fixed Size: true
-        Focal Shape Size: 0.05000000074505806
-        Invert Z Axis: false
-        Name: DenseObs
-        Near Clip Distance: 0.009999999776482582
-        Pitch: 1.5697963237762451
-        Target Frame: my_view
-        Yaw: 4.71238899230957
-      - Class: rviz/ThirdPersonFollower
-        Distance: 34.50396728515625
-        Enable Stereo Rendering:
-          Stereo Eye Separation: 0.05999999865889549
-          Stereo Focal Distance: 1
-          Swap Stereo Eyes: false
-          Value: false
-        Field of View: 0.7853981852531433
-        Focal Point:
-          X: 0
-          Y: 0
-          Z: -12
-        Focal Shape Fixed Size: true
-        Focal Shape Size: 0.05000000074505806
-        Invert Z Axis: false
-        Name: Ring
-        Near Clip Distance: 0.009999999776482582
-        Pitch: 0.7447969317436218
-        Target Frame: my_view
-        Yaw: 6.072401523590088
-      - Class: rviz/ThirdPersonFollower
-        Distance: 43.80332946777344
-        Enable Stereo Rendering:
-          Stereo Eye Separation: 0.05999999865889549
-          Stereo Focal Distance: 1
-          Swap Stereo Eyes: false
-          Value: false
-        Field of View: 0.7853981852531433
-        Focal Point:
-          X: 4.378617286682129
-          Y: -1.5167917013168335
-          Z: -11.999991416931152
-        Focal Shape Fixed Size: true
-        Focal Shape Size: 0.05000000074505806
-        Invert Z Axis: false
-        Name: ThirdPersonFollower
-        Near Clip Distance: 0.009999999776482582
-        Pitch: 0.8597965836524963
-        Target Frame: my_view
-        Yaw: 5.702403545379639
+      Yaw: 4.858579158782959
+    Saved: ~
 Window Geometry:
   Displays:
     collapsed: true

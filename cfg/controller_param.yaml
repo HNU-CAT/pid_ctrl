@@ -7,13 +7,25 @@
 
 # ROS Topic
 # odom_topic: /Odometry
-# odom_topic: /Odom_high_freq
+# odom_topic: /Odom_high_freq   // Lidar Odom
 odom_topic: /iris_0/mavros/vision_odom/odom
-# imu_topic: /lidar/imu
-# imu_topic: /mavros/imu/data
+# imu_topic: /lidar/imu  // lidar imu 
+# imu_topic: /mavros/imu/data  // FCU imu
 imu_topic: /iris_0/mavros/imu/data
 target_topic: /planning/pos_cmd
 # target_topic: /planning/pos_cmd
+
+attitude_target_topic: /iris_0/mavros/setpoint_raw/attitude
+# attitude_target_topic: /mavros/setpoint_raw/attitude
+position_arget_topic: /iris_0/mavros/setpoint_raw/local
+# position_arget_topic: /mavros/setpoint_raw/local
+
+# Log
+# ~~~~~~~~~~~~~~~~~NOTE~~~~~~~~~~~~~~~~~~~~~~
+# change to your ws
+save_path: ~/experment/pid_ctrl/pid_tracking_data.csv
+# ~~~~~~~~~~~~~~~~~NOTE~~~~~~~~~~~~~~~~~~~~~~
+
 
 # body
 use_fcu_ctrl: false      # use FCU control
@@ -42,3 +54,15 @@ verbose: false
 # Ignore
 IGNORE_ACC_VEL: false
 IGNORE_ACC: false
+
+
+# For Circle 
+circle_radius: 3.0 
+time_to_max_radius: 30
+yaw_control: false
+velocity: 2.5
+takeoff_height: 1.0 
+max_path_length: 600
+
+# log
+

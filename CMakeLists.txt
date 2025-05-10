@@ -61,3 +61,14 @@ catkin_install_python(PROGRAMS
   scripts/circle_test.py  # 替换为你的脚本路径
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
+
+catkin_install_python(PROGRAMS
+  scripts/pid_analyzer.py  # 替换为你的脚本路径
+  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
+
+catkin_install_python(PROGRAMS
+  scripts/pid_vis.py  # 替换为你的脚本路径
+  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)

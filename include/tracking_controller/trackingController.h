@@ -47,6 +47,7 @@ namespace controller{
 			double hoverThrust_;
 			bool verbose_;
 			std::string odom_topic, imu_topic, target_topic;
+			std::string attitude_target_topic, position_target_topic;
 			bool IGNORE_ACC_VEL, IGNORE_ACC;
 			bool init_odom = false;
 			bool use_fcu_ctrl;

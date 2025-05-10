@@ -7,7 +7,7 @@ https://github.com/Zhefan-Xu/tracking_controller/assets/55560905/5a83ede2-a8a2-4
 
 https://github.com/user-attachments/assets/28321dd7-60d3-4f61-940d-227ff98c5790
 
-<img src="./full_analysis.png" alt="Controller Analysis Diagram" width="800"/>
+<!-- <img src="./full_analysis.png" alt="Controller Analysis Diagram" width="800"/> -->
 
 ## 二、功能模块
 ### 1. 轨迹生成器
@@ -63,15 +63,14 @@ roslaunch tracking_controller tracking_controller.launch
 **STEP3:发布控制指令**
 ```bash
 #运行控制器，等待输入
-rosrun tracking_controller circle_test.launch
+roslaunch tracking_controller pub_cmd.launch 
 ```
 
 
 **STEP4:记录控制效果，分析控制性能**
 ```bash
-#运行控制器，等待输入
-python pid_analyzer.py
-python pid_vis.py
+
+rosrun tracking_controller pid_vis.py
 ```
 可以根据需要修改 `launch` 文件中的参数，或者在运行时通过 `rosparam set` 命令修改参数。
 
@@ -87,8 +86,8 @@ python pid_vis.py
     - `target_topic`：期望的目标状态话题，控制器根据该话题接收到的目标信息进行轨迹跟踪控制，默认值为 `/planning/pos_cmd`。
 
 - **发布话题（Publishing Topics）**：
-    - `/mavros/setpoint_raw/attitude`：向 PX4 飞行控制器发送姿态控制指令的话题。
-    - `/mavros/setpoint_raw/local`：向 PX4 飞行控制器发送本地位置控制指令的话题。
+    - `attitude_target_topic`：向 PX4 飞行控制器发送姿态控制指令的话题，默认值为`/mavros/setpoint_raw/attitude`。
+    - `position_arget_topic`：向 PX4 飞行控制器发送本地位置控制指令的话题，默认为`/mavros/setpoint_raw/local`。
     - `/tracking_controller/robot_pose`：发布机器人当前的位姿信息，用于可视化或其他节点获取机器人的实时位置。
     - `/tracking_controller/trajectory_history`：发布机器人的历史轨迹信息，方便观察机器人的运动轨迹。
     - `/tracking_controller/target_pose`：发布目标的当前位姿信息，用于对比机器人与目标的位置关系。
@@ -129,3 +128,8 @@ PID（比例 - 积分 - 微分）控制器是该项目中用于轨迹跟踪的�
 ## 五、注意事项
 - 确保里程计和 IMU 数据正常发布，否则控制器可能无法正常工作。
 - 在调整 PID 参数时，建议按照配置文件中的调参指南进行操作，逐步调整参数以获得更好的控制效果。
+- 
+## 六、TODO
+- 增加Yaw角约束
+- 增加高度约束，当无人机超过一定高度认为无人机失控，停止控制。
+- 悬停时精度有点差，是不是可以增加PID？

@@ -1,0 +1,15 @@
+<launch>
+	<rosparam file="$(find tracking_controller)/cfg/controller_param.yaml" ns="controller" />
+
+	<node pkg="tracking_controller"
+		type="circle_test.py"
+		name="pub_circle"
+		output="screen">
+	</node>
+
+	<node pkg="tracking_controller"
+		type="pid_analyzer.py"
+		name="record_data"
+		output="screen">
+	</node>
+</launch>
