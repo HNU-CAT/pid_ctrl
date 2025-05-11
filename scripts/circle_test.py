@@ -85,7 +85,7 @@ class CircleTrajectoryPublisher:
         msg.position = Point(x, y, z)
         msg.velocity = Vector3(vx, vy, vz)
         msg.acceleration = Vector3(ax, ay, az)
-        msg.yaw = yaw  # 不再直接设置目标yaw角
+        msg.yaw = yaw  
         msg.trajectory_flag = PositionCommand.TRAJECTORY_STATUS_READY
         self.pub_cmd.publish(msg)
     

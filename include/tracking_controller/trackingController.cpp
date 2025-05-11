@@ -60,6 +60,10 @@ namespace controller
 		this->dVel_(1) = dVelTemp[1];
 		this->dVel_(2) = dVelTemp[2];
 
+		this->nh_.getParam("controller/yaw_p", this->Kp_yaw);
+		this->nh_.getParam("controller/yaw_i", this->Ki_yaw);
+		this->nh_.getParam("controller/yaw_d", this->Kd_yaw);
+
 		this->nh_.getParam("controller/attitude_control_tau", this->attitudeControlTau_);
 		this->nh_.getParam("controller/hover_thrust", this->hoverThrust_);
 		this->nh_.getParam("controller/verbose", this->verbose_);
@@ -70,6 +74,9 @@ namespace controller
 
 		// Target Time
 		this->last_Received = ros::Time::now();
+
+		this->prevYawError_ = 0.0;
+		this->yawErrorInt_ = 0.0;
 	}
 
 	void trackingController::registerPub()
@@ -215,7 +222,7 @@ namespace controller
 			cmdMsg.yaw_rate = this->target_.yaw_dot;
 			cmdMsg.type_mask = 0;
 			this->accCmdPub_.publish(cmdMsg);
-						ROS_WARN("Only use FCU, No PID");
+			ROS_WARN("Only use FCU, No PID");
 			return;
 		}
 
@@ -406,7 +413,8 @@ namespace controller
 		cmdMsg.acceleration_or_force.y = accRef(1);
 		cmdMsg.acceleration_or_force.z = accRef(2) - 9.8;
 		cmdMsg.yaw = this->target_.yaw;
-		cmdMsg.type_mask = cmdMsg.IGNORE_PX + cmdMsg.IGNORE_PY + cmdMsg.IGNORE_PZ + cmdMsg.IGNORE_VX + cmdMsg.IGNORE_VY + cmdMsg.IGNORE_VZ + cmdMsg.IGNORE_YAW_RATE;
+		cmdMsg.yaw_rate = this->target_.yaw_rate;
+		cmdMsg.type_mask = cmdMsg.IGNORE_PX + cmdMsg.IGNORE_PY + cmdMsg.IGNORE_PZ + cmdMsg.IGNORE_VX + cmdMsg.IGNORE_VY + cmdMsg.IGNORE_VZ + cmdMsg.IGNORE_YAW;
 		// cout << "acc: " << accRef(0) << " " << accRef(1) << " " << accRef(2) - 9.8 << " " << endl;
 		this->accCmdPub_.publish(cmdMsg);
 	}
@@ -455,6 +463,7 @@ namespace controller
 			this->deltaTime_ = 0.0;
 			this->posErrorInt_ = Eigen::Vector3d(0.0, 0.0, 0.0);
 			this->velErrorInt_ = Eigen::Vector3d(0.0, 0.0, 0.0);
+			this->yawErrorInt_ = 0.0;
 			// this->firstTime_ = false;
 		}
 		else
@@ -473,7 +482,7 @@ namespace controller
 		// Eigen::Vector4d currQuat(this->odom_.pose.pose.orientation.w, this->odom_.pose.pose.orientation.x, this->odom_.pose.pose.orientation.y, this->odom_.pose.pose.orientation.z);
 		// Eigen::Matrix3d currRot = controller::quat2RotMatrix(currQuat);
 		// Eigen::Vector3d currVel = currRot * currVelBody;
-		// maybe not need in LIO 
+		// maybe not need in LIO
 		Eigen::Vector3d currVel = currVelBody;
 		Eigen::Vector3d targetPos(this->target_.position.x, this->target_.position.y, this->target_.position.z);
 		Eigen::Vector3d targetVel(this->target_.velocity.x, this->target_.velocity.y, this->target_.velocity.z);
@@ -481,12 +490,20 @@ namespace controller
 		Eigen::Vector3d velocityError = targetVel - currVel;
 		this->posErrorInt_ += this->deltaTime_ * positionError;
 		this->velErrorInt_ += this->deltaTime_ * velocityError;
+
+		double current_yaw = controller::rpy_from_quaternion(this->odom_.pose.pose.orientation);
+		double yaw_error = normalize_yaw(this->target_.yaw - current_yaw);
+		this->yawErrorInt_ += this->deltaTime_ * yaw_error;
+
 		if (this->firstTime_)
 		{
 			this->deltaPosError_ = Eigen::Vector3d(0.0, 0.0, 0.0);
 			this->prevPosError_ = positionError;
 			this->deltaVelError_ = Eigen::Vector3d(0.0, 0.0, 0.0);
 			this->prevVelError_ = velocityError;
+			this->deltaYawError_ = 0.0;
+			this->prevYawError_ = yaw_error;
+
 			this->firstTime_ = false;
 		}
 		else
@@ -495,8 +512,12 @@ namespace controller
 			this->prevPosError_ = positionError;
 			this->deltaVelError_ = (velocityError - this->prevVelError_) / this->deltaTime_;
 			this->prevVelError_ = velocityError;
+
+			this->deltaYawError_ = (yaw_error - this->prevYawError_) / this->deltaTime_;
+			this->prevYawError_ = yaw_error;
 		}
 
+		this->yaw_rate = this->Kp_yaw * yaw_error + this->Ki_yaw * this->yawErrorInt_ + this->Kd_yaw * deltaYawError_;
 		// mask out the velocity input if needed
 		if (this->IGNORE_ACC_VEL)
 		{
@@ -571,6 +592,16 @@ namespace controller
 		{
 			cout << "[trackingController]: Thrust percent: " << thrustPercent << endl;
 		}
+	}
+
+	double trackingController::normalize_yaw(double yaw)
+	{
+		yaw = fmod(yaw, 2 * M_PI);
+		if (yaw > M_PI)
+			yaw -= 2 * M_PI;
+		else if (yaw < -M_PI)
+			yaw += 2 * M_PI;
+		return yaw;
 	}
 
 	void trackingController::publishPoseVis()

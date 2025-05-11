@@ -7,7 +7,7 @@ https://github.com/Zhefan-Xu/tracking_controller/assets/55560905/5a83ede2-a8a2-4
 
 https://github.com/user-attachments/assets/28321dd7-60d3-4f61-940d-227ff98c5790
 
-<!-- <img src="./full_analysis.png" alt="Controller Analysis Diagram" width="800"/> -->
+<img src="./full_analysis.png" alt="Controller Analysis Diagram" width="800"/>
 
 ## 二、功能模块
 ### 1. 轨迹生成器

@@ -7,7 +7,12 @@ from collections import defaultdict
 from nav_msgs.msg import Odometry
 from tracking_controller.msg import PositionCommand
 from message_filters import ApproximateTimeSynchronizer, Subscriber
-
+from tf.transformations import euler_from_quaternion
+# 在文件顶部新增函数
+def normalize_yaw(yaw):
+    """将角度归一化到[-π, π]范围"""
+    yaw = yaw % (2 * np.pi)
+    return yaw - 2 * np.pi if yaw > np.pi else yaw
 class EnhancedPIDDataRecorder:
     def __init__(self):
         rospy.init_node('enhanced_pid_data_recorder')
@@ -29,6 +34,7 @@ class EnhancedPIDDataRecorder:
         self.prev_time = None
         self.saving_flag = False
         self.data_count = 0
+        self.prev_yaw = 0.0
 
         # 初始化订阅器
         self._init_subscribers()
@@ -90,6 +96,26 @@ class EnhancedPIDDataRecorder:
         self.data['target_x'].append(target.position.x)
         self.data['target_y'].append(target.position.y)
         self.data['target_z'].append(target.position.z)
+        self._record_yaw_data(odom, target)
+
+    def _record_yaw_data(self, odom, target):
+        """新增的yaw角记录方法"""
+        # 从四元数提取当前yaw
+        orientation = odom.pose.pose.orientation
+        try:
+            (_, _, current_yaw) = euler_from_quaternion([
+                orientation.x,
+                orientation.y,
+                orientation.z,
+                orientation.w
+            ])
+        except:
+            current_yaw = self.prev_yaw  # 使用前值作为异常备用
+            
+        # 记录目标yaw和当前yaw
+        self.data['target_yaw'].append(target.yaw)
+        self.data['actual_yaw'].append(normalize_yaw(current_yaw))
+        self.prev_yaw = current_yaw
 
     def _record_actual_velocity(self, odom):
         """记录实际速度"""
@@ -172,8 +198,8 @@ class EnhancedPIDDataRecorder:
                 # 构建数据列
                 columns = [
                     'timestamp',
-                    'actual_x', 'target_x',
-                    'actual_y', 'target_y',
+                    'actual_x', 'target_x','actual_yaw',
+                    'actual_y', 'target_y', 'target_yaw',
                     'actual_z', 'target_z',
                     'actual_vel_x', 'target_vel_x',
                     'actual_vel_y', 'target_vel_y',

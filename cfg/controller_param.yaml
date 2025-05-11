@@ -35,14 +35,19 @@ acceleration_control: true # only PID matters
 
 
 # Position（外环）
-position_p: [1.0, 1.0, 1.0]  # X/Y 提高响应
+position_p: [1.5, 1.5, 1.0]  # X/Y 提高响应
 position_i: [0.0, 0.0, 0.2]  # 仅Z轴有I项
 position_d: [0.0, 0.0, 0.1]  # 暂去掉X/Y的D
 
 # Velocity（内环）
-velocity_p: [0.6, 0.6, 0.6]  # 提高X/Y响应，Z略提
+velocity_p: [1.0, 1.0, 0.6]  # 提高X/Y响应，Z略提
 velocity_i: [0.0, 0.0, 0.0]  # 保持为0，避免积分震荡
 velocity_d: [0.0, 0.0, 0.1]  # 暂去掉X/Y的D
+
+# Yaw 
+yaw_p: 0.8
+yaw_i: 0.1
+yaw_d: 0.1
 
 # Body rate control
 attitude_control_tau: 0.3 # (this will not be used if attitude control is true)
@@ -59,7 +64,7 @@ IGNORE_ACC: false
 # For Circle 
 circle_radius: 3.0 
 time_to_max_radius: 30
-yaw_control: false
+yaw_control: True
 velocity: 2.5
 takeoff_height: 1.0 
 max_path_length: 600
