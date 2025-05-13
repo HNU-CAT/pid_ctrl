@@ -413,7 +413,7 @@ namespace controller
 		cmdMsg.acceleration_or_force.y = accRef(1);
 		cmdMsg.acceleration_or_force.z = accRef(2) - 9.8;
 		cmdMsg.yaw = this->target_.yaw;
-		cmdMsg.yaw_rate = this->target_.yaw_rate;
+		cmdMsg.yaw_rate = this->yaw_rate;
 		cmdMsg.type_mask = cmdMsg.IGNORE_PX + cmdMsg.IGNORE_PY + cmdMsg.IGNORE_PZ + cmdMsg.IGNORE_VX + cmdMsg.IGNORE_VY + cmdMsg.IGNORE_VZ + cmdMsg.IGNORE_YAW;
 		// cout << "acc: " << accRef(0) << " " << accRef(1) << " " << accRef(2) - 9.8 << " " << endl;
 		this->accCmdPub_.publish(cmdMsg);
