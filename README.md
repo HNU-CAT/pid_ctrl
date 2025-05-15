@@ -1,4 +1,5 @@
 # PID 控制器
+⚠️ 请认真阅读教程，根据自己飞机合理修改参数。最好现在仿真环境里测试！！
 ## 零、后续工作
 - 📝完善README，实验室通过修改飞控参数，可以实现**无人机的定点手动遥控**，这样即使在控制器/规划器出现BUG的时候，**仍可以通过切换为定点模式手动降落，不需要有自稳模式的飞行经验**
 - 📝 研究更底层的控制逻辑，当前控制量为**XYZ三轴加速度和偏航速度**，研究推力+姿态或推力+加速度的控制方式
@@ -36,6 +37,36 @@ https://github.com/user-attachments/assets/28321dd7-60d3-4f61-940d-227ff98c5790
 - **`controller_param.yaml`**：PID 控制器的参数配置文件，包括位置、速度的 PID 参数，以及一些控制选项，如是否使用 FCU 控制等。
 
 ## 三、安装与使用
+### 0. 飞控设置
+**如果想实现定点模式下无人机的手动控制，需要进行额外的设置**。这个设置并不复杂但是极力推荐：当**控制器/规划器出现BUG**的时候发现无人机失控，只要定位没有飘都可以通过切换回手动控制让无人机悬停在原地，极大的保障了飞机的安全，不需要有自稳模式下飞行的经验就能救机。
+#### 0.1 设置原理
+
+在手动控制无人机时，飞控有多种模式，如`自稳`、`姿态`、`定高`、`定点`。前边两个通过飞控计算稳定无人机，但是一般无人机都会飘；后边需要有额外的传感器数据，来帮助飞控实现定高飞行、
+定点飞行。因此为了实现`定点`飞行，需要将LIO/VIO/动作捕捉等定位方式产生的定位信息转发给飞控。
+
+具体原理参考官网链接链接（）
+
+#### 0.2 LIO转发定位信息
+
+因此在获得LIO信息之后可以转发给飞控，参考[代码程序](https://github.com/HNU-CAT/high_fast_lio2/blob/4f5a9ec6f9c3a73515d17d5277ea7c73271becd8/FAST_LIO/src/laserMapping.cpp#L193-L199)：    
+```
+geometry_msgs::PoseStamped pose_msg;
+ // 填充 PoseStamped 消息的 header
+pose_msg.header = odomHigh.header;
+// 填充 PoseStamped 消息的 pose（位置和姿态）
+pose_msg.pose = odomHigh.pose.pose;
+// 发布转换后的 PoseStamped 消息
+pubOdomtoPx4.publish(pose_msg);
+```
+#### 0.3 设置飞控参数
+
+修改飞控中参数
+
+![hgt_ref](https://github.com/user-attachments/assets/1155b8c3-6c28-4e4f-b692-877d7e6ffeca)
+
+![ev_ctrl](https://github.com/user-attachments/assets/44abf863-4298-4206-a3cb-2f8386120be9)
+
+
 ### 1. 安装依赖
 确保你已经安装了 ROS，并且安装了所需的消息包，如 `nav_msgs`、`geometry_msgs` 等。
 
