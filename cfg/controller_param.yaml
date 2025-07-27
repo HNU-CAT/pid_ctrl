@@ -7,23 +7,27 @@
 
 # ROS Topic
 # odom_topic: /Odometry
-# odom_topic: /Odom_high_freq   // Lidar Odom
-odom_topic: /iris_0/mavros/vision_odom/odom
+# for real world, use LIO
+odom_topic: /Odom_high_freq
+# for sim, use the vision pose
+# odom_topic: /iris_0/mavros/vision_odom/odom
 # imu_topic: /lidar/imu  // lidar imu 
-# imu_topic: /mavros/imu/data  // FCU imu
-imu_topic: /iris_0/mavros/imu/data
+# for real world, use mavros
+imu_topic: /mavros/imu/data  
+# imu_topic: /iris_0/mavros/imu/data
 target_topic: /planning/pos_cmd
 # target_topic: /planning/pos_cmd
 
-attitude_target_topic: /iris_0/mavros/setpoint_raw/attitude
-# attitude_target_topic: /mavros/setpoint_raw/attitude
-position_arget_topic: /iris_0/mavros/setpoint_raw/local
-# position_arget_topic: /mavros/setpoint_raw/local
+# choose the right namespce
+# attitude_target_topic: /iris_0/mavros/setpoint_raw/attitude
+attitude_target_topic: /mavros/setpoint_raw/attitude
+# position_arget_topic: /iris_0/mavros/setpoint_raw/local
+position_arget_topic: /mavros/setpoint_raw/local
 
 # Log
 # ~~~~~~~~~~~~~~~~~NOTE~~~~~~~~~~~~~~~~~~~~~~
 # change to your ws
-save_path: ~/experment/pid_ctrl/pid_tracking_data.csv
+save_path: ~/experiment/pid_ctrl/pid_tracking_data.csv
 # ~~~~~~~~~~~~~~~~~NOTE~~~~~~~~~~~~~~~~~~~~~~
 
 
@@ -47,7 +51,7 @@ yaw_d: 0.1
 # Body rate control
 attitude_control_roll_pitch: 3  # (this will not be used if attitude control is true)
 attitude_control_yaw: 3         # (this will not be used if attitude control is true)
-hover_thrust: 0.626359             # this need to be very accurate for a good control (most important)
+hover_thrust: 0.25             # this need to be very accurate for a good control (most important)
 
 # Error limit
 pxy_error_max: 0.6
@@ -56,7 +60,7 @@ pz_error_max: 0.3
 vz_error_max: 0.75
 
 # display message
-verbose: false
+verbose: true
 
 # Ignore
 IGNORE_ACC_VEL: false

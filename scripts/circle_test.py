@@ -18,6 +18,7 @@ class CircleTrajectoryPublisher:
         rospy.init_node('circle_trajectory_publisher')
         
         # 参数初始化
+        self.real_world_flag = True
         self.radius = rospy.get_param('controller/circle_radius', 3.0)
         self.time_step = rospy.get_param('controller/time_to_max_radius', 30.0)
         self.yaw_control = rospy.get_param('controller/yaw_control', True)
@@ -132,6 +133,9 @@ class CircleTrajectoryPublisher:
         
         elif self.state == 1:
             # 执行模式切换和解锁
+            if self.real_world_flag:
+                rospy.loginfo("真实环境，请使用遥控器解锁")
+                self.state = 2
             self.arm_and_offboard()
             if self.armed and self.offboard:
                 rospy.loginfo("初始化完成，进入起飞阶段")
@@ -156,7 +160,7 @@ class CircleTrajectoryPublisher:
                     rospy.loginfo("已到达起飞位置，准备进入圆形轨迹")
                     self.takeoff_complete = True
                     self.start_time = rospy.Time.now()
-                    self.state = 3
+                    # self.state = 3
         
         elif self.state == 3:
             # 圆形轨迹逻辑
