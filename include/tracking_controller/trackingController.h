@@ -46,7 +46,8 @@ namespace controller
 		bool accControl_ = true;
 		Eigen::Vector3d pPos_, iPos_, dPos_;
 		Eigen::Vector3d pVel_, iVel_, dVel_;
-		double attitudeControlTau_;
+		double attitudeControl_Roll_Pitch_;
+		double attitudeControl_Yaw_;
 		double hoverThrust_;
 		bool verbose_;
 		std::string odom_topic, imu_topic, target_topic;
@@ -87,6 +88,9 @@ namespace controller
 		double stateVar_ = 0.01;
 		double processNoiseVar_ = 0.01;
 		double measureNoiseVar_ = 0.02;
+		const Eigen::Vector3d kGravity_ = Eigen::Vector3d(0.0, 0.0, -9.81);
+		double pxy_error_max, vxy_error_max;
+		double pz_error_max, vz_error_max;
 		std::deque<double> prevEstimateThrusts_;
 
 		// visualization
@@ -117,6 +121,21 @@ namespace controller
 		void publishCommand(const Eigen::Vector3d &accRef);
 		void computeAttitudeAndAccRef(Eigen::Vector4d &attitudeRefQuat, Eigen::Vector3d &accRef);
 		void computeBodyRate(const Eigen::Vector4d &attitudeRefQuat, const Eigen::Vector3d &accRef, Eigen::Vector4d &cmd);
+
+		Eigen::Vector3d computeRobustBodyXAxis(const Eigen::Vector3d& x_B_prototype, const Eigen::Vector3d& x_C,
+			const Eigen::Vector3d& y_C,
+      		const Eigen::Quaterniond& attitude_estimate) const;
+
+		Eigen::Quaterniond computeDesiredAttitude(const Eigen::Vector3d& desired_acceleration, const double reference_heading,
+			const Eigen::Quaterniond& attitude_estimate) const;
+
+		Eigen::Vector3d computeNominalReferenceInputs(const Eigen::Quaterniond& attitude_estimate) const;
+		
+		bool almostZero(const double value) const;
+
+		bool almostZeroThrust(const double thrust_value) const;
+
+		void limit(Eigen::Vector3d* error, double xy_max, double z_max);
 
 		void publishTakeOff(const nav_msgs::Odometry &odom);
 		void publishHover();

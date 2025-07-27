@@ -39,32 +39,25 @@ namespace controller
 		this->pPos_(0) = pPosTemp[0];
 		this->pPos_(1) = pPosTemp[1];
 		this->pPos_(2) = pPosTemp[2];
-		this->nh_.getParam("controller/position_i", iPosTemp);
-		this->iPos_(0) = iPosTemp[0];
-		this->iPos_(1) = iPosTemp[1];
-		this->iPos_(2) = iPosTemp[2];
-		this->nh_.getParam("controller/position_d", dPosTemp);
-		this->dPos_(0) = dPosTemp[0];
-		this->dPos_(1) = dPosTemp[1];
-		this->dPos_(2) = dPosTemp[2];
+		
 		this->nh_.getParam("controller/velocity_p", pVelTemp);
 		this->pVel_(0) = pVelTemp[0];
 		this->pVel_(1) = pVelTemp[1];
 		this->pVel_(2) = pVelTemp[2];
-		this->nh_.getParam("controller/velocity_i", iVelTemp);
-		this->iVel_(0) = iVelTemp[0];
-		this->iVel_(1) = iVelTemp[1];
-		this->iVel_(2) = iVelTemp[2];
-		this->nh_.getParam("controller/velocity_d", dVelTemp);
-		this->dVel_(0) = dVelTemp[0];
-		this->dVel_(1) = dVelTemp[1];
-		this->dVel_(2) = dVelTemp[2];
+		
 
 		this->nh_.getParam("controller/yaw_p", this->Kp_yaw);
 		this->nh_.getParam("controller/yaw_i", this->Ki_yaw);
 		this->nh_.getParam("controller/yaw_d", this->Kd_yaw);
 
-		this->nh_.getParam("controller/attitude_control_tau", this->attitudeControlTau_);
+		this->nh_.getParam("controller/pxy_error_max", this->pxy_error_max);
+		this->nh_.getParam("controller/vxy_error_max", this->vxy_error_max);
+		this->nh_.getParam("controller/pz_error_max", this->pz_error_max);
+		this->nh_.getParam("controller/vz_error_max", this->vz_error_max);
+
+
+		this->nh_.getParam("controller/attitude_control_roll_pitch", this->attitudeControl_Roll_Pitch_);
+		this->nh_.getParam("controller/attitude_control_yaw", this->attitudeControl_Yaw_);
 		this->nh_.getParam("controller/hover_thrust", this->hoverThrust_);
 		this->nh_.getParam("controller/verbose", this->verbose_);
 
@@ -126,6 +119,16 @@ namespace controller
 		this->visTimer_ = this->nh_.createTimer(ros::Duration(0.033), &trackingController::visCB, this);
 	}
 
+	// ! --------------------- 回调函数 -------------------------------------
+	// 1. 话题回调
+	// 		1.1 里程计回调
+	// 		1.2 IMU 回调
+	//	 	1.3 期望目标回调
+	// 2. 定时器回调
+	// 		2.1 控制程序回调
+	//		2.2 推力估计回调
+	//		2.3 可视化回调
+	// ! -------------------------------------------------------------------
 	void trackingController::odomCB(const nav_msgs::OdometryConstPtr &odom)
 	{
 		this->odom_ = *odom;
@@ -161,7 +164,7 @@ namespace controller
 		 *  |        V
 		 *  |--> [检查是否开始规划] --(未开始规划)--> [发布起飞指令]
 		 *  |        |                              |
-		 *  |        |                              |--(把持起飞位置)-->
+		 *  |        |                              |--(保持起飞位置)-->
 		 *  |       (已经开始规划)
 		 *  |        |
 		 *  |        V
@@ -222,7 +225,7 @@ namespace controller
 			cmdMsg.yaw_rate = this->target_.yaw_dot;
 			cmdMsg.type_mask = 0;
 			this->accCmdPub_.publish(cmdMsg);
-			ROS_WARN("Only use FCU, No PID");
+			ROS_WARN_ONCE("Only use FCU, No PID");
 			return;
 		}
 
@@ -371,6 +374,12 @@ namespace controller
 		this->publishVelAndAccVis();
 	}
 
+
+	// ! --------------------- 发布函数，连接飞控 -----------------------------
+	// 1. 角速度  + 推力控制
+	// 2. 姿态    + 推力控制
+	// 3. 加速度控制IMU 
+	// ! -------------------------------------------------------------------
 	void trackingController::publishCommand(const Eigen::Vector4d &cmd)
 	{
 		mavros_msgs::AttitudeTarget cmdMsg;
@@ -394,7 +403,7 @@ namespace controller
 		cmdMsg.orientation.y = cmd(2);
 		cmdMsg.orientation.z = cmd(3);
 		double thrust = accRef.norm();
-		double thrustPercent = std::max(0.0, std::min(1.0, 1.0 * thrust / (9.8 * 1.0 / this->hoverThrust_))); // percent
+		double thrustPercent = std::max(0.1, std::min(0.9, 1.0 * thrust / (9.8 * 1.0 / this->hoverThrust_))); // percent
 		this->cmdThrust_ = thrustPercent;
 		this->cmdThrustTime_ = ros::Time::now();
 		this->thrustReady_ = true;
@@ -445,6 +454,10 @@ namespace controller
 		this->accCmdPub_.publish(cmdMsg);
 	}
 
+	// ! --------------------- 控制率计算函数 --------------------------------
+	// 1. 计算期望姿态和期望角速度
+	// 2. 计算期望 角速度 
+	// ! -------------------------------------------------------------------
 	void trackingController::computeAttitudeAndAccRef(Eigen::Vector4d &attitudeRefQuat, Eigen::Vector3d &accRef)
 	{
 		// Find the reference acceleration for motors, then convert the acceleration into attitude
@@ -457,77 +470,47 @@ namespace controller
 			4. gravity
 		*/
 
-		if (this->firstTime_)
-		{
-			this->prevTime_ = ros::Time::now();
-			this->deltaTime_ = 0.0;
-			this->posErrorInt_ = Eigen::Vector3d(0.0, 0.0, 0.0);
-			this->velErrorInt_ = Eigen::Vector3d(0.0, 0.0, 0.0);
-			this->yawErrorInt_ = 0.0;
-			// this->firstTime_ = false;
-		}
-		else
-		{
-			ros::Time currTime = ros::Time::now();
-			this->deltaTime_ = (currTime - this->prevTime_).toSec();
-			this->prevTime_ = currTime;
-		}
-
 		// 1. target acceleration
 		Eigen::Vector3d accTarget(this->target_.acceleration.x, this->target_.acceleration.y, this->target_.acceleration.z);
 
 		// 2. position & velocity feedback control (PID control for both position and velocity)
+
 		Eigen::Vector3d currPos(this->odom_.pose.pose.position.x, this->odom_.pose.pose.position.y, this->odom_.pose.pose.position.z);
-		Eigen::Vector3d currVelBody(this->odom_.twist.twist.linear.x, this->odom_.twist.twist.linear.y, this->odom_.twist.twist.linear.z);
+		Eigen::Vector3d currVelOdom(this->odom_.twist.twist.linear.x, this->odom_.twist.twist.linear.y, this->odom_.twist.twist.linear.z);
+
+		// 速度如果是在机体系下，则需要额外的处理。 如果使用LIO或者动捕或者RTK则不需要进行额外的处理
 		// Eigen::Vector4d currQuat(this->odom_.pose.pose.orientation.w, this->odom_.pose.pose.orientation.x, this->odom_.pose.pose.orientation.y, this->odom_.pose.pose.orientation.z);
 		// Eigen::Matrix3d currRot = controller::quat2RotMatrix(currQuat);
 		// Eigen::Vector3d currVel = currRot * currVelBody;
-		// maybe not need in LIO
-		Eigen::Vector3d currVel = currVelBody;
+		Eigen::Vector3d currVel = currVelOdom;
+		
+
+
 		Eigen::Vector3d targetPos(this->target_.position.x, this->target_.position.y, this->target_.position.z);
 		Eigen::Vector3d targetVel(this->target_.velocity.x, this->target_.velocity.y, this->target_.velocity.z);
 		Eigen::Vector3d positionError = targetPos - currPos;
 		Eigen::Vector3d velocityError = targetVel - currVel;
-		this->posErrorInt_ += this->deltaTime_ * positionError;
-		this->velErrorInt_ += this->deltaTime_ * velocityError;
+
+		this->limit(&positionError, this->pxy_error_max, this->pz_error_max);
+		this->limit(&velocityError, this->vxy_error_max, this->vz_error_max);
+
+		// // 打印currPos
+		// std::cout << "currPos: " << currPos.transpose() << std::endl;
+		// // 打印currVel
+		// std::cout << "currVel: " << currVel.transpose() << std::endl;
+		// // 打印position error
+		// std::cout << "position error: " << positionError.transpose() << std::endl;
+		// // 打印velocity error
+		// std::cout << "velocity error: " << velocityError.transpose() << std::endl;
 
 		double current_yaw = controller::rpy_from_quaternion(this->odom_.pose.pose.orientation);
 		double yaw_error = normalize_yaw(this->target_.yaw - current_yaw);
-		this->yawErrorInt_ += this->deltaTime_ * yaw_error;
 
-		if (this->firstTime_)
-		{
-			this->deltaPosError_ = Eigen::Vector3d(0.0, 0.0, 0.0);
-			this->prevPosError_ = positionError;
-			this->deltaVelError_ = Eigen::Vector3d(0.0, 0.0, 0.0);
-			this->prevVelError_ = velocityError;
-			this->deltaYawError_ = 0.0;
-			this->prevYawError_ = yaw_error;
+		this->yaw_rate = this->Kp_yaw * yaw_error;
 
-			this->firstTime_ = false;
-		}
-		else
-		{
-			this->deltaPosError_ = (positionError - this->prevPosError_) / this->deltaTime_;
-			this->prevPosError_ = positionError;
-			this->deltaVelError_ = (velocityError - this->prevVelError_) / this->deltaTime_;
-			this->prevVelError_ = velocityError;
 
-			this->deltaYawError_ = (yaw_error - this->prevYawError_) / this->deltaTime_;
-			this->prevYawError_ = yaw_error;
-		}
-
-		this->yaw_rate = this->Kp_yaw * yaw_error + this->Ki_yaw * this->yawErrorInt_ + this->Kd_yaw * deltaYawError_;
-		// mask out the velocity input if needed
-		if (this->IGNORE_ACC_VEL)
-		{
-			velocityError *= 0.0;
-			this->velErrorInt_ *= 0.0;
-			this->dVel_ *= 0.0;
-		}
-
-		Eigen::Vector3d accFeedback = this->pPos_.asDiagonal() * positionError + this->iPos_.asDiagonal() * this->posErrorInt_ + this->dPos_.asDiagonal() * this->deltaPosError_ +
-									  this->pVel_.asDiagonal() * velocityError + this->iVel_.asDiagonal() * this->velErrorInt_ + this->dVel_.asDiagonal() * this->deltaVelError_;
+		Eigen::Vector3d accFeedback = this->pPos_.asDiagonal() * positionError +
+									  this->pVel_.asDiagonal() * velocityError;
 
 		// 3. air drag
 		Eigen::Vector3d accAirdrag(0.0, 0.0, 0.0);
@@ -536,26 +519,61 @@ namespace controller
 		Eigen::Vector3d gravity{0.0, 0.0, -9.8};
 
 		// Final reference acceleration for motors
-		if (this->IGNORE_ACC_VEL or this->IGNORE_ACC)
-		{
-			accTarget *= 0.0;
-		}
+
 		accRef = accTarget + accFeedback - accAirdrag - gravity;
 
 		// Convert the reference acceleration into the reference attitude
 		// double yaw = this->target_.yaw;  // todo: the original implementation uses the current yaw or velocity yaw
-		double yaw = controller::rpy_from_quaternion(this->odom_.pose.pose.orientation);
-		Eigen::Vector3d direction(cos(yaw), sin(yaw), 0.0);
-		Eigen::Vector3d zDirection = accRef / accRef.norm();
-		Eigen::Vector3d yDirection = zDirection.cross(direction) / (zDirection.cross(direction)).norm();
-		Eigen::Vector3d xDirection = yDirection.cross(zDirection) / (yDirection.cross(zDirection)).norm();
+		// double yaw = controller::rpy_from_quaternion(this->odom_.pose.pose.orientation);
+		// Eigen::Vector3d direction(cos(yaw), sin(yaw), 0.0);
+		// Eigen::Vector3d zDirection = accRef / accRef.norm();
+		// Eigen::Vector3d yDirection = zDirection.cross(direction) / (zDirection.cross(direction)).norm();
+		// Eigen::Vector3d xDirection = yDirection.cross(zDirection) / (yDirection.cross(zDirection)).norm();
 
-		// with three axis vector, we can construct the rotation matrix
-		Eigen::Matrix3d attitudeRefRot;
-		attitudeRefRot << xDirection(0), yDirection(0), zDirection(0),
-			xDirection(1), yDirection(1), zDirection(1),
-			xDirection(2), yDirection(2), zDirection(2);
-		attitudeRefQuat = controller::rot2Quaternion(attitudeRefRot);
+		// // with three axis vector, we can construct the rotation matrix
+		// Eigen::Matrix3d attitudeRefRot;
+		// attitudeRefRot << xDirection(0), yDirection(0), zDirection(0),
+		// 	xDirection(1), yDirection(1), zDirection(1),
+		// 	xDirection(2), yDirection(2), zDirection(2);
+		// attitudeRefQuat = controller::rot2Quaternion(attitudeRefRot);
+
+
+		double reference_heading  = this->target_.yaw;
+		const Eigen::Quaterniond q_heading = Eigen::Quaterniond(
+		Eigen::AngleAxisd(reference_heading, Eigen::Vector3d::UnitZ()));
+
+		// Compute desired orientation
+		const Eigen::Vector3d x_C = q_heading * Eigen::Vector3d::UnitX();
+		const Eigen::Vector3d y_C = q_heading * Eigen::Vector3d::UnitY();
+
+		const Eigen::Quaterniond attitude_estimate = Eigen::Quaterniond(
+			this->odom_.pose.pose.orientation.w,
+			this->odom_.pose.pose.orientation.x,
+			this->odom_.pose.pose.orientation.y,
+			this->odom_.pose.pose.orientation.z);
+
+		Eigen::Vector3d z_B;
+		if (almostZero(accRef.norm())) {
+			// In case of free fall we keep the thrust direction to be the estimated one
+			// This only works assuming that we are in this condition for a very short
+			// time (otherwise attitude drifts)
+			z_B = attitude_estimate * Eigen::Vector3d::UnitZ();
+		} else {
+			z_B = accRef.normalized();
+		}
+
+		const Eigen::Vector3d x_B_prototype = y_C.cross(z_B);
+		const Eigen::Vector3d x_B =
+			computeRobustBodyXAxis(x_B_prototype, x_C, y_C, q_heading);
+
+		const Eigen::Vector3d y_B = (z_B.cross(x_B)).normalized();
+
+		// From the computed desired body axes we can now compose a desired attitude
+		const Eigen::Matrix3d R_W_B((Eigen::Matrix3d() << x_B, y_B, z_B).finished());
+
+		const Eigen::Quaterniond desired_attitude(R_W_B);
+
+		attitudeRefQuat = desired_attitude.coeffs();
 
 		// cout << "Position Error: " << positionError(0) << " " << positionError(1) << " " << positionError(2) << endl;
 		// 	cout << "Target Velocity: " << targetVel(0) << " " << targetVel(1) << " " << targetVel(2) << endl;
@@ -567,29 +585,64 @@ namespace controller
 
 	void trackingController::computeBodyRate(const Eigen::Vector4d &attitudeRefQuat, const Eigen::Vector3d &accRef, Eigen::Vector4d &cmd)
 	{
-		// body rate
-		Eigen::Vector4d currAttitudeQuat(this->odom_.pose.pose.orientation.w, this->odom_.pose.pose.orientation.x, this->odom_.pose.pose.orientation.y, this->odom_.pose.pose.orientation.z);
-		Eigen::Vector4d inverseQuat(1.0, -1.0, -1.0, -1.0);
-		Eigen::Vector4d currAttitudeQuatInv = inverseQuat.asDiagonal() * currAttitudeQuat;
-		Eigen::Vector4d attitudeErrorQuat = quatMultiplication(currAttitudeQuatInv, attitudeRefQuat);
-		cmd(0) = (2.0 / this->attitudeControlTau_) * std::copysign(1.0, attitudeErrorQuat(0)) * attitudeErrorQuat(1);
-		cmd(1) = (2.0 / this->attitudeControlTau_) * std::copysign(1.0, attitudeErrorQuat(0)) * attitudeErrorQuat(2);
-		cmd(2) = (2.0 / this->attitudeControlTau_) * std::copysign(1.0, attitudeErrorQuat(0)) * attitudeErrorQuat(3);
+		// 将Vector4d格式的四元数转换为Eigen::Quaterniond
+		Eigen::Quaterniond desired_attitude(
+			attitudeRefQuat(3),  // w
+			attitudeRefQuat(0),  // x
+			attitudeRefQuat(1),  // y
+			attitudeRefQuat(2)   // z
+		);
 
-		// thrust
-		// Eigen::Matrix3d currAttitudeRot = quat2RotMatrix(currAttitudeQuat);
-		// Eigen::Vector3d zDirection = currAttitudeRot.col(2); // body z axis
-		// double thrust = accRef.dot(zDirection); // thrust in acceleration
+		
+		// 从里程计获取当前姿态四元数
+		Eigen::Quaterniond attitude_estimate(
+			this->odom_.pose.pose.orientation.w,
+			this->odom_.pose.pose.orientation.x,
+			this->odom_.pose.pose.orientation.y,
+			this->odom_.pose.pose.orientation.z
+		);
+
+		// 打印期望姿态和当前姿态
+		// std::cout << "Desired Attitude: " << desired_attitude.x() << " " << desired_attitude.y() << " " << desired_attitude.z() << " " << desired_attitude.w() << std::endl;
+		// std::cout << "Current Attitude: " << attitude_estimate.x() << " " << attitude_estimate.y() << " " << attitude_estimate.z() << " " << attitude_estimate.w() << std::endl;
+
+		// 打印期望加速度
+		// std::cout << "Desired Acceleration: " << accRef.x() << " " << accRef.y() << " " << accRef.z() << std::endl;
+		
+		// 计算误差四元数 (当前姿态的逆 * 期望姿态)
+		Eigen::Quaterniond q_e = attitude_estimate.inverse() * desired_attitude;
+
+		// 定义姿态控制参数 
+		
+		double krp =   this->attitudeControl_Roll_Pitch_;  // 滚转/俯仰比例系数
+		double kyaw =  this->attitudeControl_Yaw_; // 偏航比例系数 (可单独调整)
+	
+
+		// 根据误差四元数计算期望角速度
+		if (q_e.w() < 0) {
+			q_e = Eigen::Quaterniond(-q_e.w(), -q_e.x(), -q_e.y(), -q_e.z());
+		}
+
+
+		cmd(0) = 2.0 * krp * q_e.x();
+		cmd(1) = 2.0 * krp * q_e.y();
+		cmd(2) = 2.0 * kyaw * q_e.z();
+
+		Eigen::Vector3d bodyrates = computeNominalReferenceInputs(attitude_estimate);
+
+
+		cmd(0) += bodyrates(0);
+		cmd(1) += bodyrates(1);
+		cmd(2) += bodyrates(2);
+
 		double thrust = accRef.norm();
-		double thrustPercent = std::max(0.0, std::min(1.0, 1.0 * thrust / (9.8 * 1.0 / this->hoverThrust_))); // percent
+		double thrustPercent = std::max(0.1, std::min(0.9, 1.0 * thrust / (9.8 * 1.0 / this->hoverThrust_)));
 		this->cmdThrust_ = thrustPercent;
 		this->cmdThrustTime_ = ros::Time::now();
 		this->thrustReady_ = true;
 		cmd(3) = thrustPercent;
 
-		// cout << "body rate: " << cmd(0) << " " << cmd(1) << " " << cmd(2) << endl;
-		if (this->verbose_)
-		{
+		if (this->verbose_) {
 			cout << "[trackingController]: Thrust percent: " << thrustPercent << endl;
 		}
 	}
@@ -604,6 +657,182 @@ namespace controller
 		return yaw;
 	}
 
+
+	// ! --------------------- 计算期望姿态 ---------------------------------
+	Eigen::Quaterniond trackingController::computeDesiredAttitude(
+		const Eigen::Vector3d& desired_acceleration, const double reference_heading,
+		const Eigen::Quaterniond& attitude_estimate) const 
+	{
+
+		const Eigen::Quaterniond q_heading = Eigen::Quaterniond(
+			Eigen::AngleAxisd(reference_heading, Eigen::Vector3d::UnitZ()));
+
+		// Compute desired orientation
+		const Eigen::Vector3d x_C = q_heading * Eigen::Vector3d::UnitX();
+		const Eigen::Vector3d y_C = q_heading * Eigen::Vector3d::UnitY();
+
+		Eigen::Vector3d z_B;
+		if (almostZero(desired_acceleration.norm())) {
+			// In case of free fall we keep the thrust direction to be the estimated one
+			// This only works assuming that we are in this condition for a very short
+			// time (otherwise attitude drifts)
+			z_B = attitude_estimate * Eigen::Vector3d::UnitZ();
+		} else {
+			z_B = desired_acceleration.normalized();
+		}
+
+		const Eigen::Vector3d x_B_prototype = y_C.cross(z_B);
+		const Eigen::Vector3d x_B =
+			computeRobustBodyXAxis(x_B_prototype, x_C, y_C, attitude_estimate);
+
+		const Eigen::Vector3d y_B = (z_B.cross(x_B)).normalized();
+
+		// From the computed desired body axes we can now compose a desired attitude
+		const Eigen::Matrix3d R_W_B((Eigen::Matrix3d() << x_B, y_B, z_B).finished());
+
+		const Eigen::Quaterniond desired_attitude(R_W_B);
+
+		return desired_attitude;
+	}
+
+
+	// ! --------------------- 计算参考输入作为前馈项 -------------------------
+	Eigen::Vector3d trackingController::computeNominalReferenceInputs(
+		const Eigen::Quaterniond& attitude_estimate) const 
+	{
+		double heading = this->target_.yaw;
+		double heading_rate = this->target_.yaw_dot;
+		Eigen::Vector3d jerk(this->target_.jerk.x, this->target_.jerk.y, this->target_.jerk.z);
+		Eigen::Vector3d acc(this->target_.acceleration.x, this->target_.acceleration.y, this->target_.acceleration.z);
+
+		const Eigen::Quaterniond q_heading = Eigen::Quaterniond(
+			Eigen::AngleAxisd(heading, Eigen::Vector3d::UnitZ()));
+
+		const Eigen::Vector3d x_C = q_heading * Eigen::Vector3d::UnitX();
+		const Eigen::Vector3d y_C = q_heading * Eigen::Vector3d::UnitY();
+
+		const Eigen::Vector3d des_acc = acc - kGravity_;
+
+		// Reference attitude
+		const Eigen::Quaterniond q_W_B = computeDesiredAttitude(
+			des_acc, heading, attitude_estimate);
+
+		const Eigen::Vector3d x_B = q_W_B * Eigen::Vector3d::UnitX();
+		const Eigen::Vector3d y_B = q_W_B * Eigen::Vector3d::UnitY();
+		const Eigen::Vector3d z_B = q_W_B * Eigen::Vector3d::UnitZ();
+
+		Eigen::Quaterniond orientation = q_W_B;
+		
+		
+		Eigen::Vector3d bodyrates;
+		Eigen::Vector3d angular_accelerations;
+		double collective_thrust;
+
+		// Reference thrust
+		collective_thrust = des_acc.norm();
+
+		// Reference body rates
+		if (almostZeroThrust(collective_thrust)) {
+			bodyrates.x() = 0.0;
+			bodyrates.y() = 0.0;
+		} else {
+			bodyrates.x() = -1.0 /
+											collective_thrust *
+											y_B.dot(jerk);
+			bodyrates.y() = 1.0 /
+											collective_thrust *
+											x_B.dot(jerk);
+		}
+
+		if (almostZero((y_C.cross(z_B)).norm())) {
+			bodyrates.z() = 0.0;
+		} else {
+			bodyrates.z() =
+				1.0 / (y_C.cross(z_B)).norm() *
+				(heading_rate * x_C.dot(x_B) +
+				bodyrates.y() * y_C.dot(z_B));
+		}
+		return bodyrates;
+	}
+
+
+	// ! --------------------- 安全措施辅助函数   ----------------------------
+	bool trackingController::almostZeroThrust(const double thrust_value) const {
+	return fabs(thrust_value) < 0.01;
+	}
+
+	bool trackingController::almostZero(const double value) const {
+		return fabs(value) < 0.001;
+	}
+
+	Eigen::Vector3d trackingController::computeRobustBodyXAxis(
+		const Eigen::Vector3d& x_B_prototype, const Eigen::Vector3d& x_C,
+		const Eigen::Vector3d& y_C,
+		const Eigen::Quaterniond& attitude_estimate) const {
+
+		Eigen::Vector3d x_B = x_B_prototype;
+
+		if (almostZero(x_B.norm())) {
+			// if cross(y_C, z_B) == 0, they are collinear =>
+			// every x_B lies automatically in the x_C - z_C plane
+
+			// Project estimated body x-axis into the x_C - z_C plane
+			const Eigen::Vector3d x_B_estimated =
+				attitude_estimate * Eigen::Vector3d::UnitX();
+			const Eigen::Vector3d x_B_projected =
+				x_B_estimated - (x_B_estimated.dot(y_C)) * y_C;
+			if (almostZero(x_B_projected.norm())) {
+			// Not too much intelligent stuff we can do in this case but it should
+			// basically never occur
+			x_B = x_C;
+			} else {
+			x_B = x_B_projected.normalized();
+			}
+		} else {
+			x_B.normalize();
+		}
+
+		// if the quad is upside down, x_B will point in the "opposite" direction
+		// of x_C => flip x_B (unfortunately also not the solution for our problems)
+		//  if (x_B.dot(x_C) < 0.0)
+		//  {
+		//    x_B = -x_B;
+		//  }
+
+		return x_B;
+	}
+	void trackingController::limit(Eigen::Vector3d* error, double xy_max, double z_max) {
+		if (!error) return;
+
+		// 手动限制 x 轴（替代 std::clamp）
+		if (error->x() > xy_max) {
+			error->x() = xy_max;
+		} else if (error->x() < -xy_max) {
+			error->x() = -xy_max;
+		}
+
+		// 手动限制 y 轴
+		if (error->y() > xy_max) {
+			error->y() = xy_max;
+		} else if (error->y() < -xy_max) {
+			error->y() = -xy_max;
+		}
+
+		// 手动限制 z 轴
+		if (error->z() > z_max) {
+			error->z() = z_max;
+		} else if (error->z() < -z_max) {
+			error->z() = -z_max;
+		}
+	}
+
+	// ! ---------------------用于可视化的函数 -------------------------------------
+	// 1. 发布当前无人机的位置
+	// 2. 发布历史轨迹
+	// 3. 发布目标的位置
+	// 4. 发布目标的历史轨迹
+	// 5. 发布当前速度和加速度及误差
+	// ! ------------------------------------------------------------------------
 	void trackingController::publishPoseVis()
 	{
 		if (not this->odomReceived_)

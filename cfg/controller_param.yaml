@@ -29,20 +29,15 @@ save_path: ~/experment/pid_ctrl/pid_tracking_data.csv
 
 # body
 use_fcu_ctrl: false      # use FCU control
-body_rate_control: false # all parameters
+body_rate_control: true # all parameters
 attitude_control: false # PID and hover thrust
-acceleration_control: true # only PID matters
+acceleration_control: false # only PID matters
 
 
 # Position（外环）
-position_p: [1.5, 1.5, 1.0]  # X/Y 提高响应
-position_i: [0.0, 0.0, 0.2]  # 仅Z轴有I项
-position_d: [0.0, 0.0, 0.1]  # 暂去掉X/Y的D
-
+position_p: [1.0, 1.00, 1.0]  # X/Y 提高响应
 # Velocity（内环）
-velocity_p: [1.0, 1.0, 0.6]  # 提高X/Y响应，Z略提
-velocity_i: [0.0, 0.0, 0.0]  # 保持为0，避免积分震荡
-velocity_d: [0.0, 0.0, 0.1]  # 暂去掉X/Y的D
+velocity_p: [1.8, 1.8, 4.0]  # 提高X/Y响应，Z略提
 
 # Yaw 
 yaw_p: 0.8
@@ -50,8 +45,15 @@ yaw_i: 0.1
 yaw_d: 0.1
 
 # Body rate control
-attitude_control_tau: 0.3 # (this will not be used if attitude control is true)
-hover_thrust: 0.70 # this need to be very accurate for a good control (most important)
+attitude_control_roll_pitch: 3  # (this will not be used if attitude control is true)
+attitude_control_yaw: 3         # (this will not be used if attitude control is true)
+hover_thrust: 0.626359             # this need to be very accurate for a good control (most important)
+
+# Error limit
+pxy_error_max: 0.6
+vxy_error_max: 1.0
+pz_error_max: 0.3
+vz_error_max: 0.75
 
 # display message
 verbose: false
