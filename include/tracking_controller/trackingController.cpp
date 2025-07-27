@@ -10,6 +10,14 @@ namespace controller
 {
 	trackingController::trackingController(const ros::NodeHandle &nh) : nh_(nh)
 	{
+		    ros::NodeHandle private_nh("~");
+    this->server_.reset(new dynamic_reconfigure::Server<tracking_controller::ControllerConfig>(private_nh));
+
+    dynamic_reconfigure::Server<tracking_controller::ControllerConfig>::CallbackType f;
+    f = boost::bind(&trackingController::dynamicParamsCallback, this, _1, _2);
+    server_->setCallback(f);
+
+
 		this->initParam();
 		this->registerPub();
 		this->registerCallback();
@@ -980,4 +988,31 @@ namespace controller
 		velAndAccVisMsg.text = velText;
 		this->velAndAccVisPub_.publish(velAndAccVisMsg);
 	}
+
+	// ! -------------------- =----------------------------
+	void trackingController::dynamicParamsCallback(tracking_controller::ControllerConfig &config, uint32_t level) {
+    ROS_INFO("dynamic params update...");
+    // 同步配置文件中的参数到全局变量
+	this->pPos_(0) = config.position_p_x;
+	this->pPos_(1) = config.position_p_y;
+	this->pPos_(2) = config.position_p_z;
+
+	this->pVel_(0) = config.velocity_p_x;
+	this->pVel_(1) = config.velocity_p_y;
+	this->pVel_(2) = config.velocity_p_z;
+
+	this->Kp_yaw = config.yaw_p;
+	this->Ki_yaw = config.yaw_i;
+	this->Kd_yaw = config.yaw_d;
+
+	this->pxy_error_max = config.pxy_error_max;	
+	this->vxy_error_max = config.vxy_error_max;
+	this->pz_error_max = config.pz_error_max;
+	this->vz_error_max = config.vz_error_max;
+
+
+	this->attitudeControl_Roll_Pitch_ = config.attitude_control_roll_pitch;
+	this->attitudeControl_Yaw_ = config.attitude_control_yaw;
+}
+
 }

@@ -17,6 +17,8 @@
 #include <tracking_controller/Target.h>
 #include <tracking_controller/PositionCommand.h>
 #include <tracking_controller/utils.h>
+#include <dynamic_reconfigure/server.h>
+#include <tracking_controller/ControllerConfig.h>
 
 using std::cout;
 using std::endl;
@@ -39,6 +41,7 @@ namespace controller
 		ros::Timer cmdTimer_;				  // command timer
 		ros::Timer thrustEstimatorTimer_;	  // thrust estimator timer
 		ros::Timer visTimer_;				  // visualization timer
+		boost::shared_ptr<dynamic_reconfigure::Server<tracking_controller::ControllerConfig>> server_;  // 动态参数服务器指针
 
 		// parameters
 		bool bodyRateControl_ = false;
@@ -136,6 +139,8 @@ namespace controller
 		bool almostZeroThrust(const double thrust_value) const;
 
 		void limit(Eigen::Vector3d* error, double xy_max, double z_max);
+
+		void dynamicParamsCallback(tracking_controller::ControllerConfig &config, uint32_t level);
 
 		void publishTakeOff(const nav_msgs::Odometry &odom);
 		void publishHover();

@@ -35,7 +35,7 @@ acceleration_control: false # only PID matters
 
 
 # Position（外环）
-position_p: [1.0, 1.00, 1.0]  # X/Y 提高响应
+position_p: [1.0, 1.00, 4.0]  # X/Y 提高响应
 # Velocity（内环）
 velocity_p: [1.8, 1.8, 4.0]  # 提高X/Y响应，Z略提
 

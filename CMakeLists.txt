@@ -12,7 +12,13 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   geometry_msgs
   mavros
+  dynamic_reconfigure
   message_generation
+)
+
+# 生成 dynamic_reconfigure 配置文件
+generate_dynamic_reconfigure_options(
+    cfg/ControllerConfig.cfg  # 指向你的配置文件
 )
 
 ## Generate messages in the 'msg' folder
@@ -31,7 +37,7 @@ generate_messages(
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES tracking_controller
- CATKIN_DEPENDS roscpp rospy std_msgs message_runtime
+ CATKIN_DEPENDS roscpp rospy std_msgs message_runtime dynamic_reconfigure
 #  DEPENDS system_lib
 )
 
@@ -45,17 +51,23 @@ include_directories(
 add_library(${PROJECT_NAME}
   include/${PROJECT_NAME}/trackingController.cpp
 )
-
+target_link_libraries(${PROJECT_NAME}
+  ${catkin_LIBRARIES}
+)
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
 ## either from message generation or dynamic reconfigure
 # add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}_generate_messages_cpp)
+add_dependencies(${PROJECT_NAME} ${catkin_EXPORTED_TARGETS} ${PROJECT_NAME}_gencfg)
 
 
 add_executable(tracking_controller_node src/tracking_controller_node.cpp)
 
-target_link_libraries(tracking_controller_node ${catkin_LIBRARIES} ${PROJECT_NAME})
+target_link_libraries(tracking_controller_node
+  ${catkin_LIBRARIES}
+  ${PROJECT_NAME}
+)
+
 
 catkin_install_python(PROGRAMS
   scripts/circle_test.py  # 替换为你的脚本路径
